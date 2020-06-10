@@ -29,12 +29,16 @@
 """ Kedro plugin for packaging a project with Docker """
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, Tuple, Union
 
 import click
+from importlib_metadata import distribution
 from kedro.cli import get_project_context
 from kedro.cli.utils import KedroCliError, call, forward_command
+from package_info import name
+from pkg_resources import Requirement
 
 from .helpers import (
     add_jupyter_args,
@@ -173,11 +177,34 @@ def docker_build(uid, gid, spark, image, docker_args):
         verbose,
     )
 
+    req_args = [
+        ("--build-arg", "KEDRO_UID={0}".format(uid)),
+        ("--build-arg", "KEDRO_GID={0}".format(gid)),
+    ]
+
+    if _is_python_version_supported(
+        "{major}.{minor}.{micro}".format(
+            major=sys.version_info.major,
+            minor=sys.version_info.minor,
+            micro=sys.version_info.micro,
+        )
+    ):
+        req_args.append(
+            (
+                "--build-arg",
+                "IMAGE_VERSION=python:{major}.{minor}-stretch".format(
+                    major=sys.version_info.major, minor=sys.version_info.minor,
+                ),
+            )
+        )
+    else:
+        click.echo(
+            "Python version obtained from env ({0}) is not supported.Using "
+            "default (3.6)".format(sys.version)
+        )
+
     combined_args = compose_docker_run_args(
-        required_args=[
-            ("--build-arg", "KEDRO_UID={0}".format(uid)),
-            ("--build-arg", "KEDRO_GID={0}".format(gid)),
-        ],
+        required_args=req_args,
         # add image tag if only it is not already supplied by the user
         optional_args=[("-t", image)],
         user_args=docker_args,
@@ -194,6 +221,15 @@ def _mount_info() -> Dict[str, Union[str, Tuple]]:
         mount_volumes=DOCKER_DEFAULT_VOLUMES,
     )
     return res
+
+
+def _is_python_version_supported(python_version: str) -> bool:
+    python_requires = distribution(name,).metadata["Requires-Python"].split(",")
+    for ver in python_requires:
+        req = Requirement.parse("Python {0}".format(ver.strip()))
+        if python_version not in req:
+            return False
+    return True
 
 
 @forward_command(docker_group, "run")
