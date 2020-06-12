@@ -36,6 +36,7 @@ import subprocess
 from importlib import import_module
 from itertools import chain
 from pathlib import Path, PurePosixPath
+from pkg_resources import Requirement
 from subprocess import DEVNULL, PIPE
 from typing import List, Sequence, Tuple, Union
 
@@ -265,3 +266,25 @@ def is_port_in_use(port: int) -> bool:
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as _s:
         return _s.connect_ex(("0.0.0.0", port)) == 0  # nosec
+
+
+def is_python_version_supported(
+    python_version: str,
+    python_requires: List[str],
+) -> bool:
+    """Check if the specified python version satisfy given versions.
+    Constraints are in `Requires-Python` format from setuptools, e.g.
+    ">=3.6" or "!=3.6.*".
+
+    Args:
+        python_version: version of python to check.
+        python_requires: List of version constraints.
+
+    Returns:
+        True if python_version meets python_requires.
+    """
+    for ver in python_requires:
+        req = Requirement.parse("Python {0}".format(ver.strip()))
+        if python_version not in req:
+            return False
+    return True

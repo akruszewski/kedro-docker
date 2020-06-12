@@ -37,7 +37,6 @@ import click
 from importlib_metadata import distribution
 from kedro.cli import get_project_context
 from kedro.cli.utils import KedroCliError, call, forward_command
-from pkg_resources import Requirement
 
 from .helpers import (
     add_jupyter_args,
@@ -46,6 +45,7 @@ from .helpers import (
     copy_template_files,
     get_uid_gid,
     is_port_in_use,
+    is_python_version_supported,
     make_container_name,
 )
 from .package_info import name
@@ -182,12 +182,13 @@ def docker_build(uid, gid, spark, image, docker_args):
         ("--build-arg", "KEDRO_GID={0}".format(gid)),
     ]
 
-    if _is_python_version_supported(
+    if is_python_version_supported(
         "{major}.{minor}.{micro}".format(
             major=sys.version_info.major,
             minor=sys.version_info.minor,
             micro=sys.version_info.micro,
-        )
+        ),
+        distribution(name).metadata["Requires-Python"].split(","),
     ):
         req_args.append(
             (
@@ -221,15 +222,6 @@ def _mount_info() -> Dict[str, Union[str, Tuple]]:
         mount_volumes=DOCKER_DEFAULT_VOLUMES,
     )
     return res
-
-
-def _is_python_version_supported(python_version: str) -> bool:
-    python_requires = distribution(name,).metadata["Requires-Python"].split(",")
-    for ver in python_requires:
-        req = Requirement.parse("Python {0}".format(ver.strip()))
-        if python_version not in req:
-            return False
-    return True
 
 
 @forward_command(docker_group, "run")
