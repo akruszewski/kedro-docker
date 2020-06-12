@@ -36,12 +36,12 @@ import subprocess
 from importlib import import_module
 from itertools import chain
 from pathlib import Path, PurePosixPath
-from pkg_resources import Requirement
 from subprocess import DEVNULL, PIPE
 from typing import List, Sequence, Tuple, Union
 
 from click import secho
 from kedro.cli.utils import KedroCliError
+from pkg_resources import Requirement
 
 
 def check_docker_image_exists(image: str):
@@ -269,8 +269,7 @@ def is_port_in_use(port: int) -> bool:
 
 
 def is_python_version_supported(
-    python_version: str,
-    python_requires: List[str],
+    python_version: str, python_requires: List[str],
 ) -> bool:
     """Check if the specified python version satisfy given versions.
     Constraints are in `Requires-Python` format from setuptools, e.g.
