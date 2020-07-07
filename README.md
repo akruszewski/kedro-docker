@@ -49,6 +49,7 @@ Behind the scenes Kedro does the following:
 
 > *Note:* When calling `kedro docker build` you can also pass any specific options for `docker build` by specifying `--docker-args` option. For example, `kedro docker build --docker-args="--no-cache"` instructs Docker not to use cache when building the image. You can learn more about available options [here](https://docs.docker.com/engine/reference/commandline/build/).
 > *Note:* By default, `kedro docker build` creates an image without Spark and Hadoop.
+> *Note:* By default, when calling `kedro docker build` image is built with `python:VERSION-stretch` image, where VERSION is current environment python version. By specifying `--base-image` option, different base image can be used. For example `kedro docker build --base-image="python:3.8-stretch"`.
 
 By default, the project Docker image will be tagged as `<project-root-dir>:latest`, where `<project-root-dir>` is the name of the project root directory. To change the tag, you can add the `--image` command line option, for example: `kedro docker build --image my-project-tag`.
 
@@ -60,6 +61,7 @@ Options:
 * `--image` - optional Docker image tag. Defaults to the project directory name
 * `--docker-args` - optional string containing extra options for `docker build` command
 * `--with-spark` - optional flag to create an image additionally with Spark and Hadoop
+* `--base-image` - optional base Docker image. Default is debian stretch with the current environmet python version, e.g. python:3.7-stretch
 * `-h, --help` - show command help and exit.
 
 ### Run your project in a Docker environment

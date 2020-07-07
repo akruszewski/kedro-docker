@@ -33,7 +33,7 @@ from os import path
 
 from setuptools import setup
 
-from kedro_docker.package_info import name
+name = "kedro-docker"
 
 here = path.abspath(path.dirname(__file__))
 

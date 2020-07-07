@@ -34,7 +34,6 @@ from pathlib import Path
 from typing import Dict, Tuple, Union
 
 import click
-from importlib_metadata import distribution
 from kedro.cli import get_project_context
 from kedro.cli.utils import KedroCliError, call, forward_command
 
@@ -45,10 +44,8 @@ from .helpers import (
     copy_template_files,
     get_uid_gid,
     is_port_in_use,
-    is_python_version_supported,
     make_container_name,
 )
-from .package_info import name
 
 NO_DOCKER_MESSAGE = """
 Cannot connect to the Docker daemon. Is the Docker daemon running?
@@ -156,11 +153,21 @@ def docker_group():
 @click.option(
     "--with-spark", "spark", is_flag=True, help="Build an image with Spark and Hadoop."
 )
+@click.option(
+    "--base-image",
+    type=str,
+    default="python:{major}.{minor}-stretch".format(
+        major=sys.version_info.major, minor=sys.version_info.minor,
+    ),  # pylint: disable=R0913
+    help="Base image for Dockerfile. "
+    "Default is debian stretch with the current environmet python version, "
+    "e.g. python:3.7-stretch",
+)
 @_make_image_option()
 @_make_docker_args_option(
     help="Optional arguments to be passed to `docker build` command"
 )
-def docker_build(uid, gid, spark, image, docker_args):
+def docker_build(uid, gid, spark, base_image, image, docker_args):
     """Build a Docker image for the project."""
 
     uid, gid = get_uid_gid(uid, gid)
@@ -177,35 +184,12 @@ def docker_build(uid, gid, spark, image, docker_args):
         verbose,
     )
 
-    req_args = [
-        ("--build-arg", "KEDRO_UID={0}".format(uid)),
-        ("--build-arg", "KEDRO_GID={0}".format(gid)),
-    ]
-
-    if is_python_version_supported(
-        "{major}.{minor}.{micro}".format(
-            major=sys.version_info.major,
-            minor=sys.version_info.minor,
-            micro=sys.version_info.micro,
-        ),
-        distribution(name).metadata["Requires-Python"].split(","),
-    ):
-        req_args.append(
-            (
-                "--build-arg",
-                "IMAGE_VERSION=python:{major}.{minor}-stretch".format(
-                    major=sys.version_info.major, minor=sys.version_info.minor,
-                ),
-            )
-        )
-    else:
-        click.echo(
-            "Python version obtained from env ({0}) is not supported.Using "
-            "default (3.6)".format(sys.version)
-        )
-
     combined_args = compose_docker_run_args(
-        required_args=req_args,
+        required_args=[
+            ("--build-arg", "KEDRO_UID={0}".format(uid)),
+            ("--build-arg", "KEDRO_GID={0}".format(gid)),
+            ("--build-arg", "BASE_IMAGE={0}".format(base_image)),
+        ],
         # add image tag if only it is not already supplied by the user
         optional_args=[("-t", image)],
         user_args=docker_args,
@@ -236,7 +220,7 @@ def docker_run(image, docker_args, args):
     _docker_run_args = compose_docker_run_args(
         optional_args=[("--rm", None), ("--name", container_name)],
         user_args=docker_args,
-        **_mount_info()
+        **_mount_info(),
     )
 
     command = (
@@ -256,7 +240,7 @@ def docker_ipython(image, docker_args, args):
     _docker_run_args = compose_docker_run_args(
         optional_args=[("--rm", None), ("-it", None), ("--name", container_name)],
         user_args=docker_args,
-        **_mount_info()
+        **_mount_info(),
     )
 
     command = (
@@ -283,7 +267,7 @@ def docker_jupyter_notebook(docker_args, port, image, args):
         required_args=[("-p", "{}:8888".format(port))],
         optional_args=[("--rm", None), ("-it", None), ("--name", container_name)],
         user_args=docker_args,
-        **_mount_info()
+        **_mount_info(),
     )
 
     args = add_jupyter_args(list(args))
@@ -310,7 +294,7 @@ def docker_jupyter_lab(docker_args, port, image, args):
         required_args=[("-p", "{}:8888".format(port))],
         optional_args=[("--rm", None), ("-it", None), ("--name", container_name)],
         user_args=docker_args,
-        **_mount_info()
+        **_mount_info(),
     )
 
     args = add_jupyter_args(list(args))
@@ -331,7 +315,7 @@ def docker_cmd(args, docker_args, image):
     _docker_run_args = compose_docker_run_args(
         optional_args=[("--rm", None), ("--name", container_name)],
         user_args=docker_args,
-        **_mount_info()
+        **_mount_info(),
     )
 
     command = ["docker", "run"] + _docker_run_args + [image] + list(args)

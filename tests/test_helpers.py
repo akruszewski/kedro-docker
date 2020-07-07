@@ -38,7 +38,6 @@ from kedro_docker.helpers import (
     copy_template_files,
     get_uid_gid,
     is_port_in_use,
-    is_python_version_supported,
     make_container_name,
 )
 
@@ -220,8 +219,3 @@ def test_is_port_in_use(mocker, port, mock_return_value, expected):
     _mock = mocker.patch("socket.socket.connect_ex", return_value=mock_return_value)
     assert is_port_in_use(port) is expected
     _mock.assert_called_once_with(("0.0.0.0", port))
-
-
-def test_is_python_version_supported():
-    assert is_python_version_supported("3.7", [">=3.6", "<3.7.1"]) is True
-    assert is_python_version_supported("3.6", ["!=3.6.*", "<3.7.1"]) is False

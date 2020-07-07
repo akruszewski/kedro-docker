@@ -1,5 +1,5 @@
-ARG IMAGE_VERSION=python:3.6-stretch
-FROM $IMAGE_VERSION
+ARG BASE_IMAGE=python:3.6-stretch
+FROM $BASE_IMAGE
 
 # install project requirements
 COPY src/requirements.txt /tmp/requirements.txt
