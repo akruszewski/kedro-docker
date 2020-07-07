@@ -2,6 +2,9 @@
 
 ## Major features and improvements
 
+* Added `--base-image` CLI option for `kedro docker build` command to create an image with given base image
+* By default `kedro docker build` pull debian stretch base image with python version obrained from environment
+
 ## Bug fixes and other changes
 
 ## Breaking changes to the API
